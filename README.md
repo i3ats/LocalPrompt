@@ -28,6 +28,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. Use the 'build_knowledgebase.py' script to pre-process all the files in a specified directory
+1. Adjust settings in the 'config.ini' file to fit your needs
+2. Use the 'build_knowledgebase.py' script to pre-process all the files in a specified directory
 2. Start the session using 'chart.py'
 3. Ask some questions!

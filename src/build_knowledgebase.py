@@ -7,6 +7,8 @@ import numpy as np
 import pdfplumber
 from sentence_transformers import SentenceTransformer
 
+from constants import *
+
 
 def extract_text_from_pdf(file_path):
     """Extracts text from a PDF file using PDFPlumber."""
@@ -109,7 +111,7 @@ def store_embeddings(embeddings, chunks, output_dir="vector_db"):
 
 def process_directory(directory, output_dir="vector_db"):
     """Processes all .pdf and .txt files in the directory and stores their embeddings in a common index."""
-    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    sentence_model = SentenceTransformer(SENTENCE_MODEL)
 
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
@@ -135,10 +137,10 @@ def process_directory(directory, output_dir="vector_db"):
 # Main function
 def main():
     # Specify the directory containing the files
-    directory = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild"
+    directory = INPUT_DIRECTORY
 
     # Output directory for the vector database
-    output_dir = "../output/vector_db"
+    output_dir = OUTPUT_DIRECTORY
 
     # Process all files in the directory
     process_directory(directory, output_dir)

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import scrolledtext
 
+from constants import OUTPUT_DIRECTORY, SENTENCE_MODEL
 from query_and_answer import *
 
 
@@ -8,7 +9,7 @@ class ChatApp:
     def __init__(self, root, response_function):
         self.root = root
         self.response_function = response_function  # Store the external response function
-        self.root.title("Simple Chat App")
+        self.root.title("LocalPrompt")
 
         # Chat display area
         self.chat_display = scrolledtext.ScrolledText(root, wrap=tk.WORD, state='disabled', height=15)
@@ -50,11 +51,11 @@ def main():
     gpt_tokenizer, gpt_model, gpt_device = load_gpt2_medium()
 
     # Load the sentence transformer model
-    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    sentence_model = SentenceTransformer(SENTENCE_MODEL)
 
     def my_response_function(query):
         # Load and query embeddings
-        similar_chunks = load_and_query_embeddings(query, sentence_model, "../output/vector_db")
+        similar_chunks = load_and_query_embeddings(query, sentence_model, OUTPUT_DIRECTORY)
 
         # Use the most similar chunks as context
         context = " ".join(similar_chunks)
