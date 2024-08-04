@@ -40,21 +40,28 @@ def extract_text_from_txt(file_path):
         text = file.read()
     return text
 
-def split_text_into_chunks(text, max_chunk_size=150):
-    """Splits text into chunks of a specified maximum size."""
+
+def split_text_into_chunks(text, max_chunk_size=512, overlap_size=50):
+    """
+    Splits text into chunks of a specified maximum size with overlap.
+
+    Parameters:
+    - text (str): The input text to split into chunks.
+    - max_chunk_size (int): The maximum number of words per chunk.
+    - overlap_size (int): The number of words to overlap between chunks.
+
+    Returns:
+    - chunks (list): A list of text chunks.
+    """
     words = text.split()
     chunks = []
-    current_chunk = []
+    start = 0
 
-    for word in words:
-        if len(current_chunk) + len(word) + 1 > max_chunk_size:
-            if current_chunk:  # Ensure the chunk is not empty before adding
-                chunks.append(' '.join(current_chunk))
-            current_chunk = []
-        current_chunk.append(word)
-
-    if current_chunk:
-        chunks.append(' '.join(current_chunk))
+    while start < len(words):
+        end = min(start + max_chunk_size, len(words))
+        chunk = ' '.join(words[start:end])
+        chunks.append(chunk)
+        start += max_chunk_size - overlap_size  # Move the start forward by max_chunk_size minus overlap_size
 
     return chunks
 
