@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext
 
-from constants import OUTPUT_DIRECTORY, SENTENCE_MODEL
 from query_and_answer import *
 
 
@@ -47,8 +46,8 @@ class ChatApp:
 
 
 def main():
-    # Load the GPT-2 Medium model
-    gpt_tokenizer, gpt_model, gpt_device = load_gpt2_medium()
+    # Load the Model
+    gpt_tokenizer, gpt_model, gpt_device = load_gpt_neo()
 
     # Load the sentence transformer model
     sentence_model = SentenceTransformer(SENTENCE_MODEL)

@@ -32,3 +32,12 @@ pip install -r requirements.txt
 2. Use the 'build_knowledgebase.py' script to pre-process all the files in a specified directory
 2. Start the session using 'chart.py'
 3. Ask some questions!
+
+## AI Models
+
+When running Chat for the first time, you might be happier seeing the progress of the model download.
+
+```bash
+(venv): cd src
+(venv): python chat.py
+```

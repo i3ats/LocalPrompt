@@ -4,19 +4,20 @@ import pickle
 import faiss
 import torch
 from sentence_transformers import SentenceTransformer
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from constants import OUTPUT_DIRECTORY, SENTENCE_MODEL
+from constants import OUTPUT_DIRECTORY, SENTENCE_MODEL, GPT_MODEL
 
 
-# Load GPT-2 Medium model and tokenizer
-def load_gpt2_medium():
-    print("Loading GPT-2 Medium...")
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2-medium", pad_token='<|endoftext|>')
-    model = GPT2LMHeadModel.from_pretrained("gpt2-medium")
+def load_gpt_neo():
+    print("Loading GPT-Neo...")
+    model_name = GPT_MODEL
+    tokenizer = AutoTokenizer.from_pretrained(model_name, pad_token='<|endoftext|>')
+    model = AutoModelForCausalLM.from_pretrained(model_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     return tokenizer, model, device
+
 
 # Load embeddings and perform queries
 def load_and_query_embeddings(query, sentence_model, output_dir="vector_db", top_k=5):
@@ -79,7 +80,7 @@ def generate_answer(query, context, model, tokenizer, device, max_new_tokens=150
 # Main function
 def main():
     # Load the GPT-2 Medium model
-    gpt_tokenizer, gpt_model, gpt_device = load_gpt2_medium()
+    gpt_tokenizer, gpt_model, gpt_device = load_gpt_neo()
 
     # Load the sentence transformer model
     sentence_model = SentenceTransformer(SENTENCE_MODEL)
