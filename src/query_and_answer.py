@@ -6,6 +6,8 @@ import torch
 from sentence_transformers import SentenceTransformer
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
+from constants import OUTPUT_DIRECTORY, SENTENCE_MODEL
+
 
 # Load GPT-2 Medium model and tokenizer
 def load_gpt2_medium():
@@ -80,13 +82,13 @@ def main():
     gpt_tokenizer, gpt_model, gpt_device = load_gpt2_medium()
 
     # Load the sentence transformer model
-    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    sentence_model = SentenceTransformer(SENTENCE_MODEL)
 
     # Define a query
-    query = "Who are the Ironbound?"
+    query = "Who is Mira?"
 
     # Load and query embeddings
-    similar_chunks = load_and_query_embeddings(query, sentence_model, "../output/vector_db")
+    similar_chunks = load_and_query_embeddings(query, sentence_model, OUTPUT_DIRECTORY)
 
     # Use the most similar chunks as context
     context = " ".join(similar_chunks)
