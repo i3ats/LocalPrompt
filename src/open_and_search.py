@@ -27,7 +27,8 @@ def detect_file_encoding(file_path):
     logging.info(f"Detected file encoding: {encoding}")
     return encoding
 
-def search_file_for_keywords(file_path, keywords, context_before=2, context_after=2):
+
+def search_file_for_keywords(file_path, keywords, context_before=1, context_after=3):
     """
     Searches a text file for given keywords and extracts sections containing any of the keywords.
 
@@ -137,7 +138,7 @@ def summarize_combined_sections(sections, top_n=3):
 
 # Example usage
 file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-prompt = "Who is Ashfeather?"
+prompt = "Tell me about the Ironbound Order"
 keywords = extract_keywords(prompt)
 
 if keywords:
