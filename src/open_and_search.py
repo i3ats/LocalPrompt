@@ -28,7 +28,7 @@ def detect_file_encoding(file_path):
     return encoding
 
 
-def search_file_for_keywords(file_path, keywords, context_before=1, context_after=3):
+def search_file_for_keywords(file_path, keywords, context_before=2, context_after=3):
     """
     Searches a text file for given keywords and extracts sections containing any of the keywords.
 
@@ -126,7 +126,7 @@ def summarize_combined_sections(sections, top_n=3):
     for i, chunk in enumerate(chunks):
         logging.debug(f"Summarizing chunk {i + 1}...")
         inputs = tokenizer(chunk, return_tensors="pt", truncation=True, max_length=1024)
-        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=30, do_sample=False)
+        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=0, do_sample=False)
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         chunk_summaries.append(summary)
 
