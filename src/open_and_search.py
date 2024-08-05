@@ -27,7 +27,6 @@ def detect_file_encoding(file_path):
     logging.info(f"Detected file encoding: {encoding}")
     return encoding
 
-
 def search_file_for_keywords(file_path, keywords, context_before=2, context_after=3):
     """
     Searches a text file for given keywords and extracts sections containing any of the keywords.
@@ -88,12 +87,14 @@ def rank_sections_by_relevance(sections, keywords):
     logging.info("Sections ranked.")
     return ranked_sections
 
-def summarize_combined_sections(sections, top_n=3):
+
+def summarize_combined_sections(sections, keywords, top_n=3):
     """
-    Summarizes the combined text of the top N most relevant sections using BART.
+    Summarizes the combined text of the top N most relevant sections using DistilBART.
 
     Args:
         sections (list of str): The list of text sections to summarize.
+        keywords (list of str): The list of keywords to emphasize in the summary.
         top_n (int): Number of top sections to combine for the summary.
 
     Returns:
@@ -107,38 +108,51 @@ def summarize_combined_sections(sections, top_n=3):
     device = 0 if torch.cuda.is_available() else -1
     logging.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
 
-    logging.info("Loading BART model and tokenizer locally...")
-    # Load the BART model and tokenizer locally
-    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
-    tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
+    logging.info("Loading DistilBART model and tokenizer locally...")
+    # Load the DistilBART model and tokenizer locally
+    model = AutoModelForSeq2SeqLM.from_pretrained("sshleifer/distilbart-cnn-12-6")
+    tokenizer = AutoTokenizer.from_pretrained("sshleifer/distilbart-cnn-12-6")
 
     logging.info(f"Combining the top {top_n} sections for summarization...")
     # Combine the top N sections into a single text
     combined_text = " ".join(sections[:top_n])
 
+    # Prepare a prompt including keywords to guide the summarization
+    keyword_prompt = "Keywords: " + ", ".join(keywords) + "\n"
+
     # If the combined text is too long, break it down into chunks to summarize in parts
-    max_chunk_length = 1024  # Maximum number of tokens for the model to handle effectively
-    chunks = [combined_text[i:i + max_chunk_length] for i in range(0, len(combined_text), max_chunk_length)]
+    max_chunk_length = 512  # Reduce chunk size for more focused input
+    overlap = 128  # Introduce overlap for consistent context
+    chunks = [
+        combined_text[i:i + max_chunk_length]
+        for i in range(0, len(combined_text), max_chunk_length - overlap)
+    ]
 
     logging.info(f"Summarizing {len(chunks)} chunks...")
-    # Generate a summary for each chunk using BART
+    # Generate a summary for each chunk using DistilBART
     chunk_summaries = []
     for i, chunk in enumerate(chunks):
         logging.debug(f"Summarizing chunk {i + 1}...")
-        inputs = tokenizer(chunk, return_tensors="pt", truncation=True, max_length=1024)
-        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=0, do_sample=False)
+        input_text = keyword_prompt + chunk
+        inputs = tokenizer(input_text, return_tensors="pt", truncation=True, max_length=1024)
+        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=0, num_beams=3,
+                                     no_repeat_ngram_size=4, early_stopping=True)
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         chunk_summaries.append(summary)
 
     # Combine the summaries of the chunks to create a final summary
     final_summary = " ".join(chunk_summaries)
 
+    # Ensure the final summary does not exceed the max desired length
+    if len(tokenizer.encode(final_summary)) > 1024:
+        final_summary = tokenizer.decode(tokenizer.encode(final_summary)[:1024], skip_special_tokens=True)
+
     logging.info("Summarization complete.")
     return final_summary
 
 # Example usage
 file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-prompt = "Tell me about the Ironbound Order"
+prompt = "tell me about the Ironbound Order"
 keywords = extract_keywords(prompt)
 
 if keywords:
@@ -152,8 +166,8 @@ if keywords:
     ranked_sections = rank_sections_by_relevance(extracted_sections, keywords)
 
     # Summarize the combined information from the most relevant sections
-    combined_summary = summarize_combined_sections(ranked_sections)
-    print("\nCombined Summary of the most relevant extracted sections:\n")
-    print(combined_summary)
+    combined_summary = summarize_combined_sections(ranked_sections, keywords)
+    logging.info("\nCombined Summary of the most relevant extracted sections:\n")
+    logging.info(combined_summary)
 else:
-    print("No keywords extracted. Please provide a more detailed prompt.")
+    logging.warning("No keywords extracted. Please provide a more detailed prompt.")
