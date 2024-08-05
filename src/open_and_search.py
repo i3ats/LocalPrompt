@@ -3,7 +3,7 @@ import logging
 import chardet
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
-from transformers import pipeline
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from extract_keywords import extract_keywords
 
@@ -106,9 +106,10 @@ def summarize_combined_sections(sections, top_n=3):
     device = 0 if torch.cuda.is_available() else -1
     logging.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
 
-    logging.info("Initializing BART summarization pipeline...")
-    # Initialize the BART summarization pipeline
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=device)
+    logging.info("Loading BART model and tokenizer locally...")
+    # Load the BART model and tokenizer locally
+    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
+    tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 
     logging.info(f"Combining the top {top_n} sections for summarization...")
     # Combine the top N sections into a single text
@@ -123,7 +124,9 @@ def summarize_combined_sections(sections, top_n=3):
     chunk_summaries = []
     for i, chunk in enumerate(chunks):
         logging.debug(f"Summarizing chunk {i + 1}...")
-        summary = summarizer(chunk, max_length=150, min_length=30, do_sample=False)[0]['summary_text']
+        inputs = tokenizer(chunk, return_tensors="pt", truncation=True, max_length=1024)
+        summary_ids = model.generate(inputs["input_ids"], max_length=150, min_length=30, do_sample=False)
+        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         chunk_summaries.append(summary)
 
     # Combine the summaries of the chunks to create a final summary
