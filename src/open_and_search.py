@@ -1,41 +1,67 @@
 import logging
 
-import chardet
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
+from constants import INPUT_FILE
 from extract_keywords import extract_keywords
+from file_functions import detect_file_encoding
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def detect_file_encoding(file_path):
+def extract_paragraph(lines, start_index, max_size=500):
     """
-    Detects the encoding of a text file using chardet.
+    Extracts a paragraph containing the specified start index.
 
     Args:
-        file_path (str): Path to the text file.
+        lines (list of str): List of text lines from the file.
+        start_index (int): The index where the keyword was found.
+        max_size (int): Maximum size of the paragraph in characters.
 
     Returns:
-        str: Detected file encoding.
+        str: Extracted paragraph or nearby lines if paragraph is too long.
     """
-    with open(file_path, 'rb') as file:
-        raw_data = file.read()
-        result = chardet.detect(raw_data)
-        encoding = result['encoding']
-    logging.info(f"Detected file encoding: {encoding}")
-    return encoding
+    # Initialize paragraph extraction
+    start = start_index
+    end = start_index
 
-def search_file_for_keywords(file_path, keywords, context_before=2, context_after=3):
+    # Extend backwards to find the start of the paragraph
+    while start > 0 and lines[start].strip() != "":
+        start -= 1
+    # Skip empty lines at the start
+    while start < start_index and lines[start].strip() == "":
+        start += 1
+
+    # Extend forwards to find the end of the paragraph
+    while end < len(lines) - 1 and lines[end].strip() != "":
+        end += 1
+    # Skip empty lines at the end
+    while end > start_index and lines[end].strip() == "":
+        end -= 1
+
+    # Combine lines into a paragraph
+    paragraph = "\n".join(lines[start:end + 1])
+
+    # Check if the paragraph is within the maximum size
+    if len(paragraph) <= max_size:
+        return paragraph
+    else:
+        # Fall back to nearby lines if paragraph is too long
+        context_before = 2
+        context_after = 3
+        start = max(start_index - context_before, 0)
+        end = min(start_index + context_after, len(lines))
+        return "\n".join(lines[start:end])
+
+
+def search_file_for_keywords(file_path, keywords, max_paragraph_size=500):
     """
     Searches a text file for given keywords and extracts sections containing any of the keywords.
 
     Args:
         file_path (str): Path to the text file.
         keywords (list of str): The list of keywords to search for.
-        context_before (int): Number of lines to include before the keyword occurrence.
-        context_after (int): Number of lines to include after the keyword occurrence.
+        max_paragraph_size (int): Maximum size of a paragraph to extract in characters.
 
     Returns:
         list of str: A list of extracted text sections containing any of the keywords.
@@ -49,10 +75,8 @@ def search_file_for_keywords(file_path, keywords, context_before=2, context_afte
     logging.info(f"Searching for keywords {keywords} in the document...")
     for i, line in enumerate(lines):
         if any(keyword.lower() in line.lower() for keyword in keywords):
-            # Get context lines before and after the keyword occurrence
-            start = max(i - context_before, 0)
-            end = min(i + context_after + 1, len(lines))
-            section = "".join(lines[start:end])
+            # Attempt to extract a full paragraph
+            section = extract_paragraph(lines, i, max_paragraph_size)
             keyword_sections.append(section)
             logging.debug(f"Keyword found at line {i}: {section[:75]}...")  # Log the first 75 characters
 
@@ -86,7 +110,6 @@ def rank_sections_by_relevance(sections, keywords):
     ranked_sections = [section for _, section in sorted(zip(scores, sections), reverse=True)]
     logging.info("Sections ranked.")
     return ranked_sections
-
 
 def summarize_combined_sections(sections, keywords, top_n=3):
     """
@@ -135,7 +158,7 @@ def summarize_combined_sections(sections, keywords, top_n=3):
         logging.debug(f"Summarizing chunk {i + 1}...")
         input_text = keyword_prompt + chunk
         inputs = tokenizer(input_text, return_tensors="pt", truncation=True, max_length=1024)
-        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=0, num_beams=3,
+        summary_ids = model.generate(inputs["input_ids"], max_length=256, min_length=100, num_beams=3,
                                      no_repeat_ngram_size=4, early_stopping=True)
         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
         chunk_summaries.append(summary)
@@ -151,12 +174,13 @@ def summarize_combined_sections(sections, keywords, top_n=3):
     return final_summary
 
 # Example usage
-file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-prompt = "tell me about the Ironbound Order"
+file_path = INPUT_FILE
+# prompt = "What is an Solarian?"
+prompt = "What is the Ironbound Order?"
 keywords = extract_keywords(prompt)
 
 if keywords:
-    extracted_sections = search_file_for_keywords(file_path, keywords, context_before=2, context_after=3)
+    extracted_sections = search_file_for_keywords(file_path, keywords)
     logging.info(f"\nSections containing the extracted keywords {keywords}:\n")
     for section in extracted_sections:
         logging.debug(section)
