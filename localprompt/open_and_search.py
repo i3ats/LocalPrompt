@@ -1,5 +1,4 @@
 import logging
-import re
 
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -7,61 +6,8 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from constants import INPUT_FILE
 from extract_keywords import extract_keywords
+from extract_paragraph import extract_paragraph
 from file_functions import detect_file_encoding
-
-
-def extract_paragraph(lines, start_index, max_size=500):
-    """
-    Extracts a paragraph containing the specified start index.
-
-    Args:
-        lines (list of str): List of text lines from the file.
-        start_index (int): The index where the keyword was found.
-        max_size (int): Maximum size of the paragraph in characters.
-
-    Returns:
-        str: Extracted paragraph or nearby lines if paragraph is too long.
-    """
-
-    def is_complete_sentence(line):
-        # Use a regular expression to find complete sentences
-        # This regex looks for a sentence-ending punctuation followed by a space or end of line
-        sentence_endings = re.compile(r'[.!?](?:\s|$)')
-        return len(sentence_endings.findall(line)) > 1
-
-    # Check if the line contains multiple complete sentences
-    if is_complete_sentence(lines[start_index].strip()):
-        paragraph = lines[start_index].strip()
-        if len(paragraph) <= max_size:
-            return paragraph
-        else:
-            return paragraph[:max_size]
-
-    # Initialize paragraph extraction
-    start = start_index
-    end = start_index
-
-    # Extend backwards to find the start of the paragraph
-    while start > 0 and lines[start - 1].strip() != "":
-        start -= 1
-
-    # Extend forwards to find the end of the paragraph
-    while end < len(lines) - 1 and lines[end + 1].strip() != "":
-        end += 1
-
-    # Combine lines into a paragraph
-    paragraph = "\n".join(lines[start:end + 1]).strip()
-
-    # Check if the paragraph is within the maximum size
-    if len(paragraph) <= max_size:
-        return paragraph
-    else:
-        # Fall back to nearby lines if paragraph is too long
-        context_before = 2
-        context_after = 3
-        start = max(start_index - context_before, 0)
-        end = min(start_index + context_after + 1, len(lines))
-        return "\n".join(lines[start:end]).strip()
 
 
 def search_file_for_keywords(file_path, keywords, max_paragraph_size=500):
@@ -93,6 +39,7 @@ def search_file_for_keywords(file_path, keywords, max_paragraph_size=500):
     logging.info(f"Total sections found with keywords {keywords}: {len(keyword_sections)}")
     return keyword_sections
 
+
 def rank_sections_by_relevance(sections, keywords):
     """
     Ranks sections based on their relevance to the list of keywords using TF-IDF.
@@ -120,6 +67,7 @@ def rank_sections_by_relevance(sections, keywords):
     ranked_sections = [section for _, section in sorted(zip(scores, sections), reverse=True)]
     logging.info("Sections ranked.")
     return ranked_sections
+
 
 def summarize_combined_sections(sections, keywords, top_n=3):
     """
@@ -183,10 +131,11 @@ def summarize_combined_sections(sections, keywords, top_n=3):
     logging.info("Summarization complete.")
     return final_summary
 
+
 # Example usage
 file_path = INPUT_FILE
 # prompt = "What is an Solarian?"
-prompt = "What is the Ironbound Order?"
+prompt = "What are the Shadowfell Rings?"
 keywords = extract_keywords(prompt)
 
 if keywords:
