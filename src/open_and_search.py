@@ -21,17 +21,18 @@ def detect_file_encoding(file_path):
     print(f"Detected file encoding: {encoding}")
     return encoding
 
-def search_file_for_keyword(file_path, keyword, context_lines=2):
+
+def search_file_for_keywords(file_path, keywords, context_lines=2):
     """
-    Searches a text file for a given keyword and extracts sections containing the keyword.
+    Searches a text file for given keywords and extracts sections containing any of the keywords.
 
     Args:
         file_path (str): Path to the text file.
-        keyword (str): The keyword to search for.
+        keywords (list of str): The list of keywords to search for.
         context_lines (int): Number of lines to include before and after the keyword occurrence.
 
     Returns:
-        list of str: A list of extracted text sections containing the keyword.
+        list of str: A list of extracted text sections containing any of the keywords.
     """
     encoding = detect_file_encoding(file_path)
 
@@ -39,9 +40,9 @@ def search_file_for_keyword(file_path, keyword, context_lines=2):
         lines = file.readlines()
 
     keyword_sections = []
-    print(f"Searching for keyword '{keyword}' in the document...")
+    print(f"Searching for keywords {keywords} in the document...")
     for i, line in enumerate(lines):
-        if keyword.lower() in line.lower():
+        if any(keyword.lower() in line.lower() for keyword in keywords):
             # Get context lines before and after the keyword occurrence
             start = max(i - context_lines, 0)
             end = min(i + context_lines + 1, len(lines))
@@ -49,17 +50,17 @@ def search_file_for_keyword(file_path, keyword, context_lines=2):
             keyword_sections.append(section)
             print(f"Keyword found at line {i}: {section[:75]}...")  # Print the first 75 characters
 
-    print(f"Total sections found with keyword '{keyword}': {len(keyword_sections)}")
+    print(f"Total sections found with keywords {keywords}: {len(keyword_sections)}")
     return keyword_sections
 
 
-def rank_sections_by_relevance(sections, keyword):
+def rank_sections_by_relevance(sections, keywords):
     """
-    Ranks sections based on their relevance to the keyword using TF-IDF.
+    Ranks sections based on their relevance to the list of keywords using TF-IDF.
 
     Args:
         sections (list of str): The list of text sections to rank.
-        keyword (str): The keyword to determine relevance.
+        keywords (list of str): The list of keywords to determine relevance.
 
     Returns:
         list of str: A sorted list of sections by relevance.
@@ -67,7 +68,7 @@ def rank_sections_by_relevance(sections, keyword):
     print("Ranking sections by relevance...")
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(sections)
-    keyword_vector = vectorizer.transform([keyword])
+    keyword_vector = vectorizer.transform([" ".join(keywords)])
 
     # Calculate relevance scores
     scores = (tfidf_matrix @ keyword_vector.T).toarray().flatten()
@@ -76,7 +77,6 @@ def rank_sections_by_relevance(sections, keyword):
     ranked_sections = [section for _, section in sorted(zip(scores, sections), reverse=True)]
     print("Sections ranked.")
     return ranked_sections
-
 
 def summarize_combined_sections(sections, top_n=3):
     """
@@ -121,16 +121,16 @@ def summarize_combined_sections(sections, top_n=3):
 
 # Example usage
 file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-keyword = 'Mira'
-extracted_sections = search_file_for_keyword(file_path, keyword)
+keywords = ['Ironbound', 'Ravens Guild']  # List of keywords to search for
+extracted_sections = search_file_for_keywords(file_path, keywords)
 
-print(f"\nSections containing the keyword '{keyword}':\n")
+print(f"\nSections containing the keywords {keywords}:\n")
 for section in extracted_sections:
     print(section)
     print("-" * 40)
 
 # Rank sections by relevance
-ranked_sections = rank_sections_by_relevance(extracted_sections, keyword)
+ranked_sections = rank_sections_by_relevance(extracted_sections, keywords)
 
 # Summarize the combined information from the most relevant sections
 combined_summary = summarize_combined_sections(ranked_sections)
