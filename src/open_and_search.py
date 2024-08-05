@@ -1,5 +1,9 @@
 import chardet
+import numpy as np
 import torch
+from nltk.corpus import stopwords
+from nltk.tag import pos_tag
+from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from transformers import pipeline
 
@@ -21,6 +25,39 @@ def detect_file_encoding(file_path):
     print(f"Detected file encoding: {encoding}")
     return encoding
 
+
+def extract_keywords(prompt, num_keywords=5):
+    """
+    Extracts relevant keywords from a prompt string using NLTK.
+
+    Args:
+        prompt (str): The input prompt from which to extract keywords.
+        num_keywords (int): The number of keywords to extract.
+
+    Returns:
+        list of str: A list of extracted keywords.
+    """
+    print("Extracting keywords from the prompt...")
+    stop_words = set(stopwords.words('english'))
+    words = word_tokenize(prompt)
+    filtered_words = [word for word in words if word.lower() not in stop_words and word.isalpha()]
+
+    # Tag parts of speech
+    pos_tags = pos_tag(filtered_words)
+
+    # Extract nouns and proper nouns
+    nouns = [word for word, pos in pos_tags if pos in ['NN', 'NNS', 'NNP', 'NNPS']]
+
+    # Use TF-IDF to rank nouns by relevance
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform([" ".join(nouns)])
+    scores = tfidf_matrix.toarray().flatten()
+    indices = np.argsort(scores)[::-1]
+
+    # Select top nouns as keywords
+    keywords = [nouns[i] for i in indices[:num_keywords]]
+    print(f"Extracted keywords: {keywords}")
+    return keywords
 
 def search_file_for_keywords(file_path, keywords, context_lines=2):
     """
@@ -52,7 +89,6 @@ def search_file_for_keywords(file_path, keywords, context_lines=2):
 
     print(f"Total sections found with keywords {keywords}: {len(keyword_sections)}")
     return keyword_sections
-
 
 def rank_sections_by_relevance(sections, keywords):
     """
@@ -121,10 +157,11 @@ def summarize_combined_sections(sections, top_n=3):
 
 # Example usage
 file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-keywords = ['Ironbound', 'Ravens Guild']  # List of keywords to search for
+prompt = "Analyze the influence of the Ironbound Order and its impact on the Ravens Guild."
+keywords = extract_keywords(prompt)
 extracted_sections = search_file_for_keywords(file_path, keywords)
 
-print(f"\nSections containing the keywords {keywords}:\n")
+print(f"\nSections containing the extracted keywords {keywords}:\n")
 for section in extracted_sections:
     print(section)
     print("-" * 40)
