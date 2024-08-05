@@ -24,14 +24,15 @@ def detect_file_encoding(file_path):
     return encoding
 
 
-def search_file_for_keywords(file_path, keywords, context_lines=2):
+def search_file_for_keywords(file_path, keywords, context_before=2, context_after=2):
     """
     Searches a text file for given keywords and extracts sections containing any of the keywords.
 
     Args:
         file_path (str): Path to the text file.
         keywords (list of str): The list of keywords to search for.
-        context_lines (int): Number of lines to include before and after the keyword occurrence.
+        context_before (int): Number of lines to include before the keyword occurrence.
+        context_after (int): Number of lines to include after the keyword occurrence.
 
     Returns:
         list of str: A list of extracted text sections containing any of the keywords.
@@ -46,15 +47,14 @@ def search_file_for_keywords(file_path, keywords, context_lines=2):
     for i, line in enumerate(lines):
         if any(keyword.lower() in line.lower() for keyword in keywords):
             # Get context lines before and after the keyword occurrence
-            start = max(i - context_lines, 0)
-            end = min(i + context_lines + 1, len(lines))
+            start = max(i - context_before, 0)
+            end = min(i + context_after + 1, len(lines))
             section = "".join(lines[start:end])
             keyword_sections.append(section)
             print(f"Keyword found at line {i}: {section[:75]}...")  # Print the first 75 characters
 
     print(f"Total sections found with keywords {keywords}: {len(keyword_sections)}")
     return keyword_sections
-
 
 def rank_sections_by_relevance(sections, keywords):
     """
@@ -83,7 +83,6 @@ def rank_sections_by_relevance(sections, keywords):
     ranked_sections = [section for _, section in sorted(zip(scores, sections), reverse=True)]
     print("Sections ranked.")
     return ranked_sections
-
 
 def summarize_combined_sections(sections, top_n=3):
     """
@@ -130,14 +129,13 @@ def summarize_combined_sections(sections, top_n=3):
     print("Summarization complete.")
     return final_summary
 
-
 # Example usage
 file_path = "C:\\Users\\joe_v\\OneDrive\\Desktop\\Guild\\guild_book_text.txt"
-prompt = "tell me about Ashfeather"
+prompt = "Who is Ashfeather?"
 keywords = extract_keywords(prompt)
 
 if keywords:
-    extracted_sections = search_file_for_keywords(file_path, keywords)
+    extracted_sections = search_file_for_keywords(file_path, keywords, context_before=2, context_after=3)
     print(f"\nSections containing the extracted keywords {keywords}:\n")
     for section in extracted_sections:
         print(section)
