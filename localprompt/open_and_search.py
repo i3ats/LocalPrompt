@@ -1,4 +1,5 @@
 import logging
+import re
 
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,26 +22,35 @@ def extract_paragraph(lines, start_index, max_size=500):
     Returns:
         str: Extracted paragraph or nearby lines if paragraph is too long.
     """
+
+    def is_complete_sentence(line):
+        # Use a regular expression to find complete sentences
+        # This regex looks for a sentence-ending punctuation followed by a space or end of line
+        sentence_endings = re.compile(r'[.!?](?:\s|$)')
+        return len(sentence_endings.findall(line)) > 1
+
+    # Check if the line contains multiple complete sentences
+    if is_complete_sentence(lines[start_index].strip()):
+        paragraph = lines[start_index].strip()
+        if len(paragraph) <= max_size:
+            return paragraph
+        else:
+            return paragraph[:max_size]
+
     # Initialize paragraph extraction
     start = start_index
     end = start_index
 
     # Extend backwards to find the start of the paragraph
-    while start > 0 and lines[start].strip() != "":
+    while start > 0 and lines[start - 1].strip() != "":
         start -= 1
-    # Skip empty lines at the start
-    while start < start_index and lines[start].strip() == "":
-        start += 1
 
     # Extend forwards to find the end of the paragraph
-    while end < len(lines) - 1 and lines[end].strip() != "":
+    while end < len(lines) - 1 and lines[end + 1].strip() != "":
         end += 1
-    # Skip empty lines at the end
-    while end > start_index and lines[end].strip() == "":
-        end -= 1
 
     # Combine lines into a paragraph
-    paragraph = "\n".join(lines[start:end + 1])
+    paragraph = "\n".join(lines[start:end + 1]).strip()
 
     # Check if the paragraph is within the maximum size
     if len(paragraph) <= max_size:
@@ -50,8 +60,8 @@ def extract_paragraph(lines, start_index, max_size=500):
         context_before = 2
         context_after = 3
         start = max(start_index - context_before, 0)
-        end = min(start_index + context_after, len(lines))
-        return "\n".join(lines[start:end])
+        end = min(start_index + context_after + 1, len(lines))
+        return "\n".join(lines[start:end]).strip()
 
 
 def search_file_for_keywords(file_path, keywords, max_paragraph_size=500):
