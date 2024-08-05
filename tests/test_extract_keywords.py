@@ -2,7 +2,7 @@
 
 import unittest
 
-from src.extract_keywords import extract_keywords
+from localprompt.extract_keywords import extract_keywords
 
 
 class TestMathOperations(unittest.TestCase):

@@ -1,12 +1,8 @@
 ---
-# Configuration for the Jekyll template "Just the Docs"
 parent: Decisions
 nav_order: 0001
-title: ADR Template
+title: Use NLTK to extract keywords for search
 ---
-
-<!-- we need to disable MD025, because we use the different heading "ADR Template" in the homepage (see above) than it is foreseen in the template -->
-<!-- markdownlint-disable-next-line MD025 -->
 
 # Use NLTK to extract keywords for search
 
